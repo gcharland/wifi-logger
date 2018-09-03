@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import subprocess
 from datetime import datetime, timedelta
 import sys
@@ -72,6 +74,7 @@ false_counts = 0
 time0 = datetime.now()
 [max_delay, visible_output, ask_each_scan] = check_sys_argv()
 longest_delay = timedelta(seconds=0)
+keep_on = "y"
 
 if visible_output:
 	import RPi.GPIO as GPIO
@@ -79,8 +82,6 @@ if visible_output:
 	GPIO.setmode(GPIO.BCM)
 	GPIO.setup(connection_pin, GPIO.OUT)
 	GPIO.setup(active_pin, GPIO.OUT)
-
-keep_on = "y"
 
 print("Max delay = ", max_delay)
 
