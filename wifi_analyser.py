@@ -1,3 +1,5 @@
+import subprocess
+
 def find_devices():
 	scanned_addr = []
 

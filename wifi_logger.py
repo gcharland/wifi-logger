@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
-import subprocess
 from datetime import datetime, timedelta
 import sys
-from ./wifi_analyser.py import scan_devices as scan_devices
+from wifi_analyser import find_devices as find_devices
 
 def update_device(mac_addr, scanned_addr, connection_status, wifi_status, time0, max_delay, longest_delay, false_counts):
 	if mac_addr in scanned_addr:
