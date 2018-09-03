@@ -1,0 +1,3 @@
+mac_addr = "70:ec:e4:6b:4b:ee" # mac address de mon iPhone
+DEFAULT_visible_output = 0
+DEFAULT_ask_each_scan = 0

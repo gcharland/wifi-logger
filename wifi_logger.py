@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 import sys
 from wifi_analyser import find_devices as find_devices
+import signal
 
 def update_device(mac_addr, scanned_addr, connection_status, wifi_status, time0, max_delay, longest_delay, false_counts):
 	if mac_addr in scanned_addr:
@@ -28,51 +29,54 @@ def update_device(mac_addr, scanned_addr, connection_status, wifi_status, time0,
 	return [connection_status, wifi_status, time0, longest_delay, false_counts]
 
 def check_sys_argv():
+
+        default_mac_addr = ""
+        default_visible_output = False
+        default_ask_each_time = True
+        default_max_delay = 15
+
+        with open("./conf.txt") as configs:
+            for config in configs:
+                if config.startswith("#"):
+                    continue
+
+                keyword, value = config.split("=")
+
+                if keyword == "mac_addr":
+                    default_mac_addr = value
+                if keyword == "DEFAULT_visible_output":
+                    default_visible_output = value
+                if keyword == "DEFAULT_ask_each_scan":
+                    default_ask_each_time = value
+                if keyword == "DEFAULT_max_delay":
+                    default_max_delay = value
+
 	if len(sys.argv) > 1:
 		max_delay = timedelta(minutes=int(sys.argv[1]))
 	else:
-		max_delay = timedelta(minutes=15)
+		max_delay = timedelta(minutes=default_max_delay)
 
 	if len(sys.argv) > 2:
 		visible_output = bool(sys.argv[2])
 	else:
-		visible_output = True
+		visible_output = default_visible_output
 
 	if len(sys.argv) > 3:
 		ask_each_scan = bool(sys.argv[3])
 	else:
-		ask_each_scan = False
+		ask_each_scan = default_ask_each_scan
 
-	return [max_delay, visible_output, ask_each_scan]
+        if len(sys.argv) > 3:
+                mac_addr = str(sys.argv[4])
+        else:
+                mac_addr = default_mac_addr
 
-connection_pin = 21
-active_pin = 18
+	return [max_delay, visible_output, ask_each_scan, mac_addr]
 
-my_macAddr = "70:ec:e4:6b:4b:ee" # mac address de mon iPhone
-
-connection_status = False
-wifi_status = False
-false_counts = 0
-
-time0 = datetime.now()
-[max_delay, visible_output, ask_each_scan] = check_sys_argv()
-longest_delay = timedelta(seconds=0)
-keep_on = "y"
-
-if visible_output:
-	import RPi.GPIO as GPIO
-
-	GPIO.setmode(GPIO.BCM)
-	GPIO.setup(connection_pin, GPIO.OUT)
-	GPIO.setup(active_pin, GPIO.OUT)
-
-print("Max delay = ", max_delay)
-
-while keep_on == "y":
-
+def run_logger():
 	scanned_addr = find_devices()
 
-	[connection_status, wifi_status, time0, longest_delay, false_counts] = update_device(my_macAddr, scanned_addr, connection_status, wifi_status, time0, max_delay, longest_delay, false_counts)
+	[connection_status, wifi_status, time0, longest_delay, false_counts] = update_device(mac_addr, scanned_addr, connection_status, wifi_status, time0, max_delay, longest_delay, false_counts)
 
 	if visible_output:
 		GPIO.output(connection_pin, connection_status)
@@ -85,7 +89,65 @@ while keep_on == "y":
 
 	if ask_each_scan == True:
 		keep_on = input("Keep on watching? (Y/n):")
+        else: keep_on = "y"
 
+        if keep_on = "y": return True
+        else: return False
+
+def exit_gracefully(signum, frame):
+        signal.signal(signal.SIGINT, original_siginit)
+
+        try:
+                if raw_imput("Do you really wish to quit [Y/n]: ").lower().startswith("y"):
+                        if visible_output:
+                            GPIO.cleanup()
+                
+                    sys.exit(1)
+
+        except KeyboardInterrupt:
+                print("Ok, quitting...")
+                if visible_output:
+                    GPIO.cleanup()
+
+                sys.exit(1)
+
+
+# GPIO Variables
+connection_pin = 21
+active_pin = 18
+
+# Phone status variables
+connection_status = False
+wifi_status = False
+false_counts = 0
+time0 = datetime.now()
+longest_delay = timedelta(seconds=0)
+
+[max_delay, visible_output, ask_each_scan, mac_addr] = check_sys_argv()
+
+# While loop variable
+keep_on = "y"
+
+# Import RPi.GPIO library if visible output is required (LED, relay, etc.)
 if visible_output:
-	GPIO.cleanup()
+	import RPi.GPIO as GPIO
 
+	GPIO.setmode(GPIO.BCM)
+	GPIO.setup(connection_pin, GPIO.OUT)
+	GPIO.setup(active_pin, GPIO.OUT)
+
+
+############################
+### BEGINING OF PROGRAMM ###
+############################
+
+print("Max delay = ", max_delay)
+
+if __name__ == "__main__":
+    original_siginit = signal.getsignal(signal.SIGINIT)
+    signal.signal(signal.SIGINIT, exit_gracefully)
+    keep_on = run_logger()
+    if keep_on == False:
+        if visible_output:
+            GPIO.cleanup()
+            sys.exit(1)
